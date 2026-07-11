@@ -1,300 +1,240 @@
-# ============================================
-# 🚗 BRONX RC PROXY V4 - REAL PROXY ROTATION
-# Uses Free Proxies • Different Real IPs
-# ============================================
-from flask import Flask, request, jsonify
-import requests
-import random
-import time
-import os
-import threading
+<?php
+// ============================================
+// 🚗 BRONX 91WHEELS PROXY API - UNLIMITED
+// Multi-Session • Auto Rotation • No Limit
+// ============================================
 
-app = Flask(__name__)
+header("Content-Type: application/json");
+header("Access-Control-Allow-Origin: *");
+header("Access-Control-Allow-Methods: GET, OPTIONS");
+header("Access-Control-Allow-Headers: *");
 
-CREDIT = "@BRONX_ULTRA"
-REAL_API = "https://car-info-super.onrender.com"
-
-# 🔥 FREE PROXY POOL - Auto-updated
-PROXY_LIST = []
-working_proxies = []
-total_requests = 0
-success_count = 0
-
-def fetch_free_proxies():
-    """Fetch free proxies from multiple sources"""
-    global PROXY_LIST
-    
-    proxies = set()
-    
-    # Source 1: proxyscrape
-    try:
-        r = requests.get("https://api.proxyscrape.com/v2/?request=displayproxies&protocol=http&timeout=5000&country=all&ssl=all&anonymity=all", timeout=10)
-        for line in r.text.strip().split('\n'):
-            line = line.strip()
-            if line:
-                proxies.add(line)
-    except: pass
-    
-    # Source 2: proxy-list.download
-    try:
-        r = requests.get("https://www.proxy-list.download/api/v1/get?type=http", timeout=10)
-        for line in r.text.strip().split('\n'):
-            line = line.strip()
-            if line:
-                proxies.add(line)
-    except: pass
-    
-    # Source 3: openproxy.space
-    try:
-        r = requests.get("https://openproxy.space/list/http", timeout=10)
-        for line in r.text.strip().split('\n'):
-            line = line.strip()
-            if ':' in line:
-                proxies.add(line)
-    except: pass
-    
-    PROXY_LIST = list(proxies)
-    print(f"✅ Fetched {len(PROXY_LIST)} proxies!")
-
-def check_proxy(proxy):
-    """Test if proxy works with our API"""
-    try:
-        proxies = {"http": f"http://{proxy}", "https": f"http://{proxy}"}
-        r = requests.get(REAL_API, proxies=proxies, timeout=5)
-        if r.status_code == 200:
-            return True
-    except:
-        pass
-    return False
-
-def find_working_proxies():
-    """Find working proxies in background"""
-    global working_proxies
-    while True:
-        print(f"🔄 Testing {len(PROXY_LIST)} proxies...")
-        working = []
-        for proxy in PROXY_LIST[:50]:  # Test 50 at a time
-            if check_proxy(proxy):
-                working.append(proxy)
-                print(f"✅ Working: {proxy}")
-        working_proxies = working
-        print(f"🔥 {len(working_proxies)} working proxies!")
-        
-        # Refresh proxy list if low
-        if len(working_proxies) < 5:
-            fetch_free_proxies()
-        
-        time.sleep(300)  # Refresh every 5 minutes
-
-def get_random_proxy():
-    """Get random working proxy"""
-    global working_proxies
-    if working_proxies:
-        return random.choice(working_proxies)
-    return None
-
-# Browser signatures
-BROWSERS = [
-    {"ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36", "name": "Chrome/Win"},
-    {"ua": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_1 like Mac OS X) AppleWebKit/605.1.15 Version/17.1 Mobile/15E148 Safari/604.1", "name": "Safari/iPhone"},
-    {"ua": "Mozilla/5.0 (Linux; Android 14; Pixel 8 Pro) AppleWebKit/537.36 Chrome/120.0.6099.144 Mobile Safari/537.36", "name": "Chrome/Android"},
-    {"ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36", "name": "Chrome/Mac"},
-    {"ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36", "name": "Chrome/Linux"},
-]
-
-@app.after_request
-def add_headers(response):
-    response.headers['Access-Control-Allow-Origin'] = '*'
-    response.headers['Access-Control-Allow-Methods'] = 'GET, OPTIONS'
-    response.headers['Access-Control-Allow-Headers'] = '*'
-    return response
-
-@app.route('/')
-def home():
-    return '''<!DOCTYPE html>
-<html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>🚗 BRONX RC PROXY V4</title>
-<style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{background:#000a14;color:#d0d8f0;font-family:Arial,sans-serif;min-height:100vh;display:flex;justify-content:center;align-items:center;padding:20px}
-.card{background:#0a1a2a;border:1px solid #ff0080;border-radius:20px;padding:30px;max-width:700px;width:100%;text-align:center}
-h1{color:#ff0080;font-size:22px}
-.badge{display:inline-block;padding:4px 10px;border-radius:20px;font-size:9px;margin:3px;background:rgba(255,0,128,.1);color:#ff0080;border:1px solid rgba(255,0,128,.3)}
-.badge.g{color:#00ff88;border-color:rgba(0,255,136,.3)}
-.badge.y{color:#ffb400;border-color:rgba(255,180,0,.3)}
-.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:10px 0}
-.st{background:#000;padding:10px;border-radius:8px;text-align:center}
-.st .v{font-size:18px;font-weight:700;color:#ff0080}
-.st .l{font-size:7px;color:#666}
-code{color:#00ff88;background:#000;padding:8px;display:block;margin:8px 0;border-radius:8px;font-size:11px}
-input{width:100%;padding:12px;background:#000;border:1px solid #ff0080;border-radius:8px;color:#fff;font-size:14px;margin:6px 0}
-button{width:100%;padding:14px;background:#ff0080;color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:14px;margin:4px 0}
-button:hover{background:#ff1493}
-.result{background:#000;border:1px solid #00ff88;border-radius:8px;padding:14px;margin-top:10px;text-align:left;display:none;max-height:400px;overflow:auto}
-.result.show{display:block}
-pre{color:#00ff88;font-family:monospace;font-size:10px;white-space:pre-wrap}
-</style></head>
-<body>
-<div class="card">
-<h1>🚗 BRONX RC PROXY V4</h1>
-<p style="color:#666;font-size:11px">REAL Proxy Rotation • Different IPs</p>
-<div style="margin:8px 0">
-<span class="badge y">🌐 Real Proxies</span>
-<span class="badge g">🔄 Auto Rotate</span>
-<span class="badge">📱 Multi-Browser</span>
-<span class="badge g">∞ Unlimited</span>
-</div>
-<div class="stats">
-<div class="st"><div class="v" id="proxies">0</div><div class="l">PROXIES</div></div>
-<div class="st"><div class="v" id="total">0</div><div class="l">REQUESTS</div></div>
-<div class="st"><div class="v" id="success">0</div><div class="l">SUCCESS</div></div>
-<div class="st"><div class="v" id="ip">-</div><div class="l">LAST IP</div></div>
-</div>
-<code>GET /rc?term=MH02FZ0555</code>
-<input type="text" id="rcInput" placeholder="Enter RC Number..." autocomplete="off">
-<button onclick="lookup()">🔍 FETCH WITH NEW IP</button>
-<div class="result" id="result"><pre id="resultData"></pre></div>
-<p style="color:#444;font-size:9px;margin-top:10px">@BRONX_ULTRA</p>
-</div>
-<script>
-var t=0,s=0;
-async function lookup(){
-var n=document.getElementById('rcInput').value.trim();
-if(!n)return;
-var d=document.getElementById('result'),p=document.getElementById('resultData');
-d.classList.add('show');p.style.color='#ffb400';p.textContent='Connecting through NEW proxy IP...';
-try{
-var r=await fetch('/rc?term='+encodeURIComponent(n));
-var j=await r.json();
-p.style.color='#00ff88';p.textContent=JSON.stringify(j,null,2);
-t++;
-if(j._proxy&&j._proxy.success) s++;
-document.getElementById('total').textContent=t;
-document.getElementById('success').textContent=s;
-if(j._proxy){
-document.getElementById('ip').textContent=j._proxy.ip||'-';
-document.getElementById('proxies').textContent=j._proxy.pool_size||0;
+// Handle CORS preflight
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit;
 }
-}catch(e){
-p.style.color='#ff0080';p.textContent='Error: '+e.message;
-t++;
-document.getElementById('total').textContent=t;
-}
-}
-</script>
-</body></html>'''
 
-@app.route('/rc')
-def rc_proxy():
-    global total_requests, success_count
-    total_requests += 1
-    
-    term = request.args.get('term', '').strip().upper().replace(' ', '').replace('-', '')
-    
-    if not term:
-        return jsonify({"error": "Missing RC number"}), 400
-    
-    browser = random.choice(BROWSERS)
-    proxy = get_random_proxy()
-    
-    headers = {
-        "User-Agent": browser["ua"],
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        "Accept-Language": "en-US,en;q=0.9",
-        "Connection": "keep-alive",
+// Get parameters
+$action = $_GET['action'] ?? 'api';
+$rc = trim($_GET['rc'] ?? $_GET['term'] ?? '');
+
+// ============ HOME PAGE ============
+if ($action === 'home' || ($rc === '' && $action === 'api')) {
+    ?>
+    <!DOCTYPE html>
+    <html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <title>🚗 BRONX 91WHEELS PROXY</title>
+    <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{background:#000a14;color:#d0d8f0;font-family:Arial,sans-serif;min-height:100vh;display:flex;justify-content:center;align-items:center;padding:20px}
+    .card{background:#0a1a2a;border:1px solid #ff0080;border-radius:20px;padding:30px;max-width:700px;width:100%;text-align:center}
+    h1{color:#ff0080;font-size:24px;margin-bottom:5px}
+    .badge{display:inline-block;padding:5px 12px;border-radius:20px;font-size:9px;margin:3px;background:rgba(255,0,128,.1);color:#ff0080;border:1px solid rgba(255,0,128,.3)}
+    .badge.g{color:#00ff88;border-color:rgba(0,255,136,.3)}
+    .badge.y{color:#ffb400;border-color:rgba(255,180,0,.3)}
+    .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:10px 0}
+    .st{background:#000;padding:10px;border-radius:8px;text-align:center}
+    .st .v{font-size:18px;font-weight:700;color:#ff0080}
+    .st .l{font-size:7px;color:#666}
+    code{color:#00ff88;background:#000;padding:8px;display:block;margin:8px 0;border-radius:8px;font-size:12px;word-break:break-all}
+    input{width:100%;padding:12px;background:#000;border:1px solid #ff0080;border-radius:8px;color:#fff;font-size:14px;margin:6px 0}
+    button{width:100%;padding:14px;background:#ff0080;color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:14px;margin:4px 0}
+    button:hover{background:#ff1493}
+    .result{background:#000;border:1px solid #00ff88;border-radius:8px;padding:14px;margin-top:10px;text-align:left;display:none;max-height:400px;overflow:auto}
+    .result.show{display:block}
+    pre{color:#00ff88;font-family:monospace;font-size:10px;white-space:pre-wrap}
+    </style></head>
+    <body>
+    <div class="card">
+    <h1>🚗 BRONX 91WHEELS PROXY</h1>
+    <p style="color:#666;font-size:11px">Unlimited Sessions • Auto Rotation • PHP</p>
+    <div style="margin:8px 0">
+    <span class="badge y">🔄 New Session</span>
+    <span class="badge g">📱 Multi-Device</span>
+    <span class="badge">🌐 91Wheels API</span>
+    <span class="badge g">∞ Unlimited</span>
+    </div>
+    <div class="stats">
+    <div class="st"><div class="v" id="count">0</div><div class="l">REQUESTS</div></div>
+    <div class="st"><div class="v" id="success">0</div><div class="l">SUCCESS</div></div>
+    <div class="st"><div class="v" id="session">-</div><div class="l">SESSION ID</div></div>
+    <div class="st"><div class="v">∞</div><div class="l">LIMIT</div></div>
+    </div>
+    <code>GET /api.php?rc=MH02FZ0555</code>
+    <input type="text" id="rcInput" placeholder="Enter RC Number..." autocomplete="off">
+    <button onclick="lookup()">🔍 FETCH WITH NEW SESSION</button>
+    <div class="result" id="result"><pre id="resultData"></pre></div>
+    <p style="color:#444;font-size:9px;margin-top:10px">@BRONX_ULTRA</p>
+    </div>
+    <script>
+    var c=0,s=0;
+    async function lookup(){
+    var n=document.getElementById('rcInput').value.trim();
+    if(!n)return;
+    var d=document.getElementById('result'),p=document.getElementById('resultData');
+    d.classList.add('show');p.style.color='#ffb400';p.textContent='Creating NEW session...';
+    try{
+    var r=await fetch('?rc='+encodeURIComponent(n));
+    var j=await r.json();
+    p.style.color='#00ff88';p.textContent=JSON.stringify(j,null,2);
+    c++;
+    if(j.status==='success')s++;
+    document.getElementById('count').textContent=c;
+    document.getElementById('success').textContent=s;
+    if(j._proxy)document.getElementById('session').textContent=j._proxy.session_id||'-';
+    }catch(e){
+    p.style.color='#ff0080';p.textContent='Error: '+e.message;
+    c++;
+    document.getElementById('count').textContent=c;
     }
-    
-    try:
-        # METHOD 1: With proxy
-        if proxy:
-            proxies = {"http": f"http://{proxy}", "https": f"http://{proxy}"}
-            resp = requests.get(
-                f"{REAL_API}/?rc={term}",
-                headers=headers,
-                proxies=proxies,
-                timeout=15
-            )
-            
-            if resp.status_code == 200:
-                try:
-                    data = resp.json()
-                    success_count += 1
-                    data["_proxy"] = {
-                        "ip": proxy.split(":")[0],
-                        "browser": browser["name"],
-                        "pool_size": len(working_proxies),
-                        "success": True,
-                        "credit": CREDIT
-                    }
-                    return jsonify(data)
-                except:
-                    pass
-        
-        # METHOD 2: Direct (fallback)
-        resp = requests.get(f"{REAL_API}/?rc={term}", headers=headers, timeout=15)
-        
-        if resp.status_code == 200:
-            try:
-                data = resp.json()
-                success_count += 1
-                data["_proxy"] = {
-                    "ip": "direct",
-                    "browser": browser["name"],
-                    "success": True,
-                    "credit": CREDIT
-                }
-                return jsonify(data)
-            except:
-                return jsonify({
-                    "status": "success",
-                    "data": resp.text[:5000],
-                    "_proxy": {"ip": "direct", "success": True, "credit": CREDIT}
-                })
-        
-        return jsonify({
-            "success": resp.status_code == 200,
-            "message": resp.text[:500] if resp.text else f"Status: {resp.status_code}",
-            "_proxy": {
-                "ip": proxy.split(":")[0] if proxy else "direct",
-                "browser": browser["name"],
-                "pool_size": len(working_proxies),
-                "success": False,
-                "credit": CREDIT
-            }
-        })
-        
-    except Exception as e:
-        return jsonify({
-            "success": False,
-            "message": str(e)[:200],
-            "_proxy": {"success": False, "credit": CREDIT}
-        }), 500
+    }
+    </script>
+    </body></html>
+    <?php
+    exit;
+}
 
-@app.route('/proxies')
-def list_proxies():
-    return jsonify({
-        "total": len(PROXY_LIST),
-        "working": len(working_proxies),
-        "proxies": working_proxies[:20]
-    })
+// ============ API ENDPOINT ============
+if ($rc === '') {
+    echo json_encode([
+        "status" => "error",
+        "message" => "Missing RC number. Use ?rc=MH02FZ0555",
+        "credit" => "@BRONX_ULTRA"
+    ]);
+    exit;
+}
 
-@app.errorhandler(404)
-def not_found(e):
-    return jsonify({"error": "Not found", "api": "/rc?term=MH02FZ0555"}), 404
+// ============ GENERATE UNIQUE SESSION ============
+// Har request pe NAYA session ID
+$sessionId = generateSessionID();
 
-if __name__ == '__main__':
-    import urllib3
-    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+// ============ MULTIPLE USER AGENTS ============
+$userAgents = [
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (iPhone; CPU iPhone OS 17_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Mobile/15E148 Safari/604.1",
+    "Mozilla/5.0 (Linux; Android 14; Pixel 8 Pro) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.6099.144 Mobile Safari/537.36",
+    "Mozilla/5.0 (Linux; Android 13; SM-S908B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.6099.144 Mobile Safari/537.36",
+    "Mozilla/5.0 (iPad; CPU OS 17_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Mobile/15E148 Safari/604.1",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:121.0) Gecko/20100101 Firefox/121.0",
+];
+
+$randomUA = $userAgents[array_rand($userAgents)];
+
+// ============ RANDOM DEVICE FINGERPRINT ============
+$screenResolutions = ["1920x1080", "1366x768", "1440x900", "1536x864", "2560x1440", "390x844", "412x915", "360x800"];
+$randomScreen = $screenResolutions[array_rand($screenResolutions)];
+$randomColorDepth = [24, 30, 32][array_rand([24, 30, 32])];
+$randomTimeZone = ["Asia/Kolkata", "America/New_York", "Europe/London", "Asia/Dubai", "Asia/Singapore"][array_rand([0,1,2,3,4])];
+$randomLanguage = ["en-US,en;q=0.9", "en-IN,en;q=0.9,hi;q=0.8", "en-GB,en;q=0.9"][array_rand([0,1,2])];
+
+// ============ BUILD REQUEST ============
+$payload = json_encode([
+    "regNo" => $rc,
+    "sessionid" => $sessionId
+]);
+
+$url = "https://api1.91wheels.com/api/v1/third/rc-detail";
+
+$ch = curl_init($url);
+curl_setopt_array($ch, [
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_POST => true,
+    CURLOPT_POSTFIELDS => $payload,
+    CURLOPT_TIMEOUT => 25,
+    CURLOPT_CONNECTTIMEOUT => 10,
+    CURLOPT_FOLLOWLOCATION => true,
+    CURLOPT_HTTPHEADER => [
+        "Content-Type: application/json",
+        "Accept: application/json, text/plain, */*",
+        "Accept-Language: $randomLanguage",
+        "Accept-Encoding: gzip, deflate, br",
+        "Origin: https://www.91wheels.com",
+        "Referer: https://www.91wheels.com/",
+        "User-Agent: $randomUA",
+        "Sec-Ch-Ua: \"Not_A Brand\";v=\"8\", \"Chromium\";v=\"120\", \"Google Chrome\";v=\"120\"",
+        "Sec-Ch-Ua-Mobile: ?0",
+        "Sec-Ch-Ua-Platform: \"Windows\"",
+        "Sec-Fetch-Dest: empty",
+        "Sec-Fetch-Mode: cors",
+        "Sec-Fetch-Site: same-site",
+        "Cache-Control: no-cache",
+        "Pragma: no-cache",
+        "DNT: 1",
+    ],
+    CURLOPT_COOKIE => "session_id=$sessionId; visitor=" . uniqid() . "; _ga=GA1.1." . rand(100000000, 999999999) . "." . time(),
+    CURLOPT_SSL_VERIFYPEER => false,
+    CURLOPT_SSL_VERIFYHOST => false,
+    CURLOPT_ENCODING => "gzip, deflate, br",
+]);
+
+$res = curl_exec($ch);
+$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+$curlError = curl_error($ch);
+curl_close($ch);
+
+// ============ HANDLE ERRORS ============
+if ($curlError) {
+    echo json_encode([
+        "status" => "error",
+        "message" => "Connection error: " . $curlError,
+        "_proxy" => [
+            "session_id" => substr($sessionId, 0, 8) . "***",
+            "success" => false,
+            "credit" => "@BRONX_ULTRA"
+        ]
+    ]);
+    exit;
+}
+
+// ============ DECODE RESPONSE ============
+$data = json_decode($res, true);
+
+if (!$data) {
+    // If not JSON, return raw
+    echo json_encode([
+        "status" => "error",
+        "message" => "Invalid response",
+        "raw_response" => substr($res, 0, 500),
+        "http_code" => $httpCode,
+        "_proxy" => [
+            "session_id" => substr($sessionId, 0, 8) . "***",
+            "success" => false,
+            "credit" => "@BRONX_ULTRA"
+        ]
+    ]);
+    exit;
+}
+
+// ============ SUCCESS - ADD PROXY INFO ============
+$data["_proxy"] = [
+    "session_id" => substr($sessionId, 0, 8) . "***",
+    "session_full" => $sessionId,
+    "user_agent" => substr($randomUA, 0, 50) . "...",
+    "http_code" => $httpCode,
+    "success" => ($httpCode === 200),
+    "note" => "NEW session created for this request!",
+    "credit" => "@BRONX_ULTRA"
+];
+
+echo json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+
+// ============ HELPER FUNCTIONS ============
+function generateSessionID() {
+    // Generate unique session ID (like browser fingerprint)
+    $parts = [];
     
-    # Initial fetch
-    fetch_free_proxies()
+    // Random hex strings
+    $parts[] = bin2hex(random_bytes(16));
+    $parts[] = dechex(time());
+    $parts[] = dechex(rand(100000, 999999));
+    $parts[] = uniqid('', true);
     
-    # Start proxy checker in background
-    checker = threading.Thread(target=find_working_proxies, daemon=True)
-    checker.start()
-    
-    port = int(os.environ.get('PORT', 3000))
-    print(f"🚗 BRONX RC PROXY V4 - REAL IP ROTATION")
-    print(f"🌐 {len(PROXY_LIST)} Proxies Fetched")
-    print(f"🚀 http://localhost:{port}")
-    app.run(host='0.0.0.0', port=port)
+    // Combine and hash
+    return str_replace('.', '', implode('-', $parts));
+}
+?>
